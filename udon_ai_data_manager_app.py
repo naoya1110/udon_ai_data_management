@@ -8,14 +8,14 @@ import shutil
 from datetime import datetime
 import pandas as pd
 
-database_filepath = "research/UDON_AI_DATABASE/MAIN_DATABASE/udonya_database_main.xlsx"
+database_filepath = "MAIN_DATABASE/udonya_database_main.xlsx"
 df = pd.read_excel(database_filepath)
 
 id_list = df["ID"].tolist()
 udonya_name_list = df["udonya_name"].tolist()
 udonya_id_names_all = [f"{str(id).zfill(4)}_{udonya_name}" for id, udonya_name in zip(id_list, udonya_name_list)]
 
-target_main_dirpath = "research/UDON_AI_DATABASE/MAIN_DATABASE/IMAGES"
+target_main_dirpath = "MAIN_DATABASE/IMAGES"
 
 frame_size = 300
 thumbnail_size = 150
@@ -51,6 +51,7 @@ def create_thumbnails_frame():
 
 def update_thumbnails(target_dirpath):
     window["-TargetInfo-"].update(target_dirpath)
+    window["-ThumbsSlider-"].update(thumbnail_offset*3)
     filenames = os.listdir(target_dirpath)
     jpg_filenames = [x for x in filenames if ".jpg" in x ]
     for i in range(2):
@@ -161,6 +162,15 @@ button_column2 = sg.Column([[num_files_el],
                             [down_button_el],
                             [bottom_button_el]])
 
+thumbs_slider = sg.Slider(range=(100,0),
+                      default_value =0,
+                      resolution=3,
+                      orientation='v',
+                      size=(15, 15),
+                      enable_events=True,
+                      disable_number_display=True,
+                      key='-ThumbsSlider-')
+
 log_message = sg.Multiline(logtext, key="-LogMessage-", size=(400, 5), autoscroll=True)
 quit_button = sg.Button("Quit", key="-Quit-", size=(7,1))
 
@@ -175,7 +185,7 @@ column2 = sg.Column([[title2],
                      [search_word_el, search_button_el, clear_search_result_button_el],
                      [udonya_names_list_el, udonya_info_column, add_new_udonya_button_el],
                      [target_info],
-                     [thumbnails_frame, button_column2]])
+                     [thumbnails_frame, thumbs_slider, button_column2]])
 
 
 layout = [[column1, column2],
@@ -184,7 +194,7 @@ layout = [[column1, column2],
             
 
 
-window = sg.Window("test", layout, size=(1200,800))
+window = sg.Window("test", layout, size=(1400,800))
 
 while True:
     event, values = window.read(timeout=20)
@@ -243,23 +253,27 @@ while True:
         thumbnail_offset = 0
         update_thumbnails(target_dirpath)
 
+        window["-ThumbsSlider-"].update(range=(0, num_files-3))
+
 #----------------------------------------#
 # control visible thumbnails
-    if event == "-Top-":
-        thumbnail_offset = 0
-        update_thumbnails(target_dirpath)       
+    if event in ["-Top-", "-Down-", "-Up-", "-Bottom-", "-ThumbsSlider-"]:
+        if event == "-Top-":
+            thumbnail_offset = 0
 
-    if event == "-Down-":
-        thumbnail_offset += 1
+        if event == "-Down-":
+            thumbnail_offset += 1
+
+        if event == "-Up-":
+            if thumbnail_offset > 0: thumbnail_offset -= 1
+
+        if event == "-Bottom-":
+            thumbnail_offset = num_files//3-1
+
+        if event == "-ThumbsSlider-":
+            thumbnail_offset = int(values["-ThumbsSlider-"]//3-1)
+        
         update_thumbnails(target_dirpath)
-
-    if event == "-Up-":
-        if thumbnail_offset > 0: thumbnail_offset -= 1
-        update_thumbnails(target_dirpath)
-
-    if event == "-Bottom-":
-        thumbnail_offset = num_files//3-1
-        update_thumbnails(target_dirpath) 
 #----------------------------------------#
 
 #----------------------------------------#
